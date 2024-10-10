@@ -1,0 +1,25 @@
+name: CD Workflow
+on: 
+    push:
+        branches: [ "main" ]
+jobs:
+  SSH:
+    runs-on: ubuntu-latest
+
+    steps:
+        - uses: actions/checkout@v3
+        - name: Run scripts in server
+          uses: appleboy/ssh-action@master
+          with:
+            key: ${{ secrets.SSH_KEY }} # private key
+            host: ${{ secrets.HOST }} # gcp의 외부 ip
+            username: ${{ secrets.USER }} 
+            script: | 
+                mkdir ${{ github.event.repository.name }}
+                cd ${{ vars.project_path }}/${{ github.event.repository.name }} 
+                git pull origin main
+
+# vars.project_path: /home/ubuntu 홈 디렉터리
+# github.event.repository.name: test241001 
+# /home/ubuntu/test241001 레포로 이동해라... 배포 서버로 한번 접속해서 git clone을 하라는...의미...?
+# git clone 
