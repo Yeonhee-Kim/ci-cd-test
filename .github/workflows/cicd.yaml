@@ -51,4 +51,8 @@ jobs:
             git pull origin main  # 최신 코드를 가져오기
             npm install  # 의존성 설치
             npm run build  # 프로젝트 빌드
+<<<<<<< HEAD
             pm2 restart all  # PM2를 사용한 Node.js 서버 재시작 (선택사항)
+=======
+            pm2 restart all  # PM2를 사용한 Node.js 서버 재시작 (선택사항)
+>>>>>>> e3fcf18 (add package.json)
