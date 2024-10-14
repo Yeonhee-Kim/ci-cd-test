@@ -1,64 +1,54 @@
-name: CI/CD Workflow
+name: Deployment Exercise 2
 
-on:
+on: 
   push:
     branches:
       - main
 
 jobs:
-  # 첫 번째 작업: 코드 스타일을 체크하는 Linting
   lint:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Get code
         uses: actions/checkout@v3
-      
-      - name: Run linter
-        run: |
-          npm install eslint
-          npx eslint .
-
-  # 두 번째 작업: 테스트 실행 (Linting 작업이 성공해야 실행됨)
-  test:
-    runs-on: ubuntu-latest
-    needs: lint
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v3
-        with:
-          node-version: '16'
-
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+      - name: Lint
+        run: npm run lint
 
-      - name: Run tests
-        run: npm test
-
-   # 세 번째 작업: 배포 (Testing 작업이 성공해야 실행됨)
-  deploy:
+  test:
+    needs: lint
     runs-on: ubuntu-latest
-    needs: test
     steps:
-      - name: Checkout code
+      - name: Get code
         uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Test
+        run: npm run test
 
-      - name: Deploy to server via SSH
+  deploy:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Install dependencies
+        run: npm ci
+      - name: Build code
+        run: npm run build
+
+      # GCP 외부 서버로 배포
+      - name: Deploy to GCP server via SSH
         uses: appleboy/ssh-action@master
         with:
-          host: ${{ secrets.HOST }}  # GCP 인스턴스의 IP 주소
-          username: ${{ secrets.USER }}  # GCP 인스턴스의 사용자 이름
-          key: ${{ secrets.SSH_KEY }}  # 개인 키
+          key: ${{ secrets.SSH_KEY }}  # GCP 서버로 접속할 SSH 개인 키
+          host: ${{ secrets.HOST }}    # GCP 서버의 외부 IP
+          username: ${{ secrets.USER }}  # GCP 서버의 사용자 이름
           script: |
-            cd ${{ secrets.DEPLOY_PATH }}  # 서버에서 배포될 경로
-            git pull origin main           # 최신 코드를 서버로 가져오기
-            npm install                    # 의존성 설치
-            npm run build                  # 빌드 (필요한 경우)
-            pm2 restart all                # PM2로 서버 재시작 (Node.js 앱일 경우)
-
-# vars.project_path: /home/ubuntu 홈 디렉터리
-# github.event.repository.name: test241001 
-# /home/ubuntu/test241001 레포로 이동해라... 배포 서버로 한번 접속해서 git clone을 하라는...의미...?
-# git clone 
+            mkdir -p ${{ github.event.repository.name }}  # 배포 디렉토리 생성
+            cd ${{ secrets.PROJECT_PATH }}/${{ github.event.repository.name }}  # 배포할 경로로 이동
+            git pull origin main  # 최신 코드를 가져오기
+            npm ci  # 의존성 설치
+            npm run build  # 프로젝트 빌드
+            pm2 restart all  # PM2를 사용한 Node.js 서버 재시작 (선택사항)
